@@ -27,14 +27,17 @@ public class AfkScreensaver extends Application {
     private static final String AFK_LOGO_NAME = "afk_logo.png";
 
     private final Dimension screenDimensions = Toolkit.getDefaultToolkit().getScreenSize();
-    private final Dimension2D rectDimension = new Dimension2D(180, 80);
+    /**
+     * Default dimensions of AFK logo puck.
+     */
+    private final Dimension2D defaultRectDimension = new Dimension2D(400, 130);
     private final Point2D startingCoordinate = new Point2D(
-            screenDimensions.getWidth() / 2 - rectDimension.getWidth() / 2,
-            screenDimensions.getHeight() / 2 - rectDimension.getHeight() / 2);
+            screenDimensions.getWidth() / 2 - defaultRectDimension.getWidth() / 2,
+            screenDimensions.getHeight() / 2 - defaultRectDimension.getHeight() / 2);
 
     private int pixelsToTraversePerSecond = 300;
     private final Rectangle boundingBox = new Rectangle(0, 0, this.screenDimensions.getWidth(), this.screenDimensions.getHeight());
-    private final Rectangle rect = new Rectangle(startingCoordinate.getX(), startingCoordinate.getY(), rectDimension.getWidth(), rectDimension.getHeight());
+    private final Rectangle rect = new Rectangle(startingCoordinate.getX(), startingCoordinate.getY(), defaultRectDimension.getWidth(), defaultRectDimension.getHeight());
 
     private Point2D lastVector;
 
@@ -53,6 +56,13 @@ public class AfkScreensaver extends Application {
         if (afkImageResource != null) {
             try {
                 Image afkImage = new Image(afkImageResource.toURI().toString());
+
+                System.out.println("Image dimensions: " + afkImage.getWidth() + " | " + afkImage.getHeight());
+                // Set puck dimensions according to screen resolution.
+                double afkLogoAspectRatio = afkImage.getHeight() / afkImage.getWidth();
+                this.rect.setWidth(0.15 * afkImage.getWidth());
+                this.rect.setHeight(afkLogoAspectRatio * this.rect.getWidth());
+
                 this.rect.setFill(new ImagePattern(afkImage));
                 LOGGER.info("Successfully loaded AFK logo for the puck.");
             } catch (URISyntaxException use){
