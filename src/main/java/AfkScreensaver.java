@@ -6,6 +6,7 @@ import javafx.geometry.Point2D;
 import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.ImagePattern;
 import javafx.scene.shape.Rectangle;
@@ -16,11 +17,14 @@ import org.apache.logging.log4j.Logger;
 
 import java.awt.Dimension;
 import java.awt.Toolkit;
-import java.io.File;
+import java.net.URISyntaxException;
+import java.net.URL;
 
 
 public class AfkScreensaver extends Application {
     private static final Logger LOGGER = LogManager.getLogger(AfkScreensaver.class);
+
+    private static final String AFK_LOGO_NAME = "afk_logo.png";
 
     private final Dimension screenDimensions = Toolkit.getDefaultToolkit().getScreenSize();
     private final Dimension2D rectDimension = new Dimension2D(180, 80);
@@ -41,10 +45,24 @@ public class AfkScreensaver extends Application {
         stage.setFullScreen(true);
         stage.setTitle("AFK Screensaver");
 
-        Image img = new Image(new File("resources/afk_logo.png").toURI().toString());
-        this.rect.setFill(new ImagePattern(img));
+        // Configure puck.
         this.rect.setStyle("-fx-stroke: green; -fx-stroke-width: 3;");
         this.rect.setSmooth(true);
+
+        URL afkImageResource = getClass().getResource(AfkScreensaver.AFK_LOGO_NAME);
+        if (afkImageResource != null) {
+            try {
+                Image afkImage = new Image(afkImageResource.toURI().toString());
+                this.rect.setFill(new ImagePattern(afkImage));
+                LOGGER.info("Successfully loaded AFK logo for the puck.");
+            } catch (URISyntaxException use){
+                LOGGER.error("Caught a URISyntaxException when trying to turn " + afkImageResource + " into a URI.");
+                this.rect.setFill(Color.PINK);
+            }
+        } else {
+            LOGGER.warn("Could not find resource for AFK logo with name \"" + AfkScreensaver.AFK_LOGO_NAME + "\"");
+            this.rect.setFill(Color.PINK);
+        }
 
         var group = new Group(rect);
         var scene = new Scene(group);
@@ -52,10 +70,12 @@ public class AfkScreensaver extends Application {
         stage.setScene(scene);
         stage.show();
 
-        scene.setOnKeyPressed(keyEvent -> {
+        // Attach handlers.
+        stage.addEventFilter(KeyEvent.KEY_PRESSED, keyEvent -> {
             switch (keyEvent.getCode()) {
                 case UP -> this.pixelsToTraversePerSecond += 20;
                 case DOWN -> this.pixelsToTraversePerSecond = Math.max(10, this.pixelsToTraversePerSecond - 20);
+                case F11 -> stage.setFullScreen(!stage.isFullScreen());
             }
         });
 
@@ -89,6 +109,8 @@ public class AfkScreensaver extends Application {
         Point2D reflectionVector = Geometrics.getDeflectionVector(this.rect, this.lastVector, this.boundingBox);
         double collisionT = Geometrics.getMinimalCollisionT(rect, reflectionVector, boundingBox);
         Point2D collisionPoint = new Point2D(rect.getX(), rect.getY()).add(reflectionVector.multiply(collisionT));
+
+        LOGGER.debug("Collision Point Calculation: rect[" + rect.getX() + ", " + rect.getY() + "] + " + collisionT + " * " + reflectionVector + " = " + collisionPoint);
 
         var transition = new TranslateTransition(Duration.seconds(collisionPoint.distance(rect.getX(), rect.getY()) / pixelsToTraversePerSecond), rect);
         transition.setToX(collisionPoint.getX() - rect.getX());

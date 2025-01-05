@@ -7,6 +7,7 @@ import java.security.InvalidParameterException;
 
 public class Geometrics {
     private static final Logger LOGGER = LogManager.getLogger(Geometrics.class);
+    private static final double EPSILON = 0.0000000001;
 
     public static Point2D getRandomVector() {
         double randomAngleRadians = Math.random() * (2 * Math.PI);
@@ -38,22 +39,26 @@ public class Geometrics {
         return reflectionVector;
     }
 
-    private static Direction determineHitDirection(Rectangle rect, Rectangle boundingBox){
+    private static Direction determineHitDirection(Rectangle rect, Rectangle boundingBox) {
         LOGGER.debug("Determine hit direction for rect " + rect + " in bounding box " + boundingBox);
 
         Direction hitDirection = null;
-        if (rect.getY() == boundingBox.getY()) {
+        if (Math.abs(rect.getY() - boundingBox.getY()) < Geometrics.EPSILON) {
             hitDirection = Direction.NORTH;
-        } else if (rect.getX() + rect.getWidth() == boundingBox.getX() + boundingBox.getWidth()) {
+            rect.setY(boundingBox.getY()); // Account for imprecision.
+        } else if (Math.abs((rect.getX() + rect.getWidth()) - (boundingBox.getX() + boundingBox.getWidth())) < Geometrics.EPSILON) {
             hitDirection = Direction.EAST;
-        } else if (rect.getY() + rect.getHeight() == boundingBox.getY() + boundingBox.getHeight()) {
+            rect.setX(boundingBox.getX() + boundingBox.getWidth() - rect.getWidth()); // Account for imprecision.
+        } else if (Math.abs((rect.getY() + rect.getHeight()) - (boundingBox.getY() + boundingBox.getHeight())) < Geometrics.EPSILON) {
             hitDirection = Direction.SOUTH;
-        } else if (rect.getX() == boundingBox.getX()) {
+            rect.setY(boundingBox.getY() + boundingBox.getHeight() - rect.getHeight()); // Account for imprecision.
+        } else if (Math.abs(rect.getX() - boundingBox.getX()) < Geometrics.EPSILON) {
             hitDirection = Direction.WEST;
+            rect.setX(boundingBox.getX()); // Account for imprecision.
         }
 
         // Sanity check.
-        if(hitDirection == null){
+        if (hitDirection == null) {
             LOGGER.error("Rect " + rect + " does not interfere with any of the sides of the bounding box " + boundingBox);
             throw new IllegalArgumentException("Rectangle does not seem to have hit one of the sides of the surrounding bounding box.");
         }
