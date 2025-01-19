@@ -10,6 +10,7 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.ImagePattern;
 import javafx.scene.shape.Rectangle;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import org.apache.logging.log4j.LogManager;
@@ -17,6 +18,7 @@ import org.apache.logging.log4j.Logger;
 
 import java.awt.Dimension;
 import java.awt.Toolkit;
+import java.io.File;
 import java.net.URISyntaxException;
 import java.net.URL;
 
@@ -66,7 +68,7 @@ public class AfkScreensaver extends Application {
                 this.rect.setFill(new ImagePattern(afkImage));
                 LOGGER.info("Successfully loaded AFK logo for the puck.");
             } catch (URISyntaxException use){
-                LOGGER.error("Caught a URISyntaxException when trying to turn " + afkImageResource + " into a URI.");
+                LOGGER.error("Caught a URISyntaxException when trying to turn {} into a URI.", afkImageResource);
                 this.rect.setFill(Color.PINK);
             }
         } else {
@@ -92,9 +94,27 @@ public class AfkScreensaver extends Application {
                 case UP -> this.pixelsToTraversePerSecond += 20; // TODO Small information overlay.
                 case DOWN -> this.pixelsToTraversePerSecond = Math.max(10, this.pixelsToTraversePerSecond - 20);
                 case F1 -> {
-                    // TODO Background picker.
+                    var fileChooser = new FileChooser();
+                    fileChooser.setTitle("Select Background for AFK Screensaver");
+                    fileChooser.setInitialDirectory(new File(System.getProperty("user.home")));
+                    fileChooser.getExtensionFilters().addAll(
+                            new FileChooser.ExtensionFilter("JPG", "*.jpg"),
+                            new FileChooser.ExtensionFilter("PNG", "*.png")
+                    );
+
+                    File selectedBackgroundFile = fileChooser.showOpenDialog(stage);
+
+                    if(selectedBackgroundFile != null) {
+                        LOGGER.info("Selected background image file: {}", selectedBackgroundFile.getAbsolutePath());
+                        scene.setFill(new ImagePattern(new Image(selectedBackgroundFile.toURI().toString())));
+                    } else {
+                        LOGGER.info("No background image selected. Clearing the background.");
+                        scene.setFill(Color.BLACK);
+                    }
                 }
-                case F11 -> stage.setFullScreen(!stage.isFullScreen());
+                case F9 -> {
+                    // TODO Repack in case of changed resolution.
+                }
                 case F10 -> {
                     if(!this.debugMode){
                         // Turn on debug mode.
@@ -106,6 +126,7 @@ public class AfkScreensaver extends Application {
 
                     this.debugMode = !this.debugMode;
                 }
+                case F11 -> stage.setFullScreen(!stage.isFullScreen());
             }
         });
 
@@ -115,7 +136,7 @@ public class AfkScreensaver extends Application {
 
         double collisionT = Geometrics.getMinimalCollisionT(rect, initialVector, boundingBox);
         Point2D collisionLTCoord = new Point2D(rect.getX(), rect.getY()).add(initialVector.multiply(collisionT));
-        LOGGER.debug("Initial move: Vector = " + initialVector + " Collision-t = " + collisionT + " Collision-Coord = " + collisionLTCoord);
+        LOGGER.debug("Initial move: Vector = {} Collision-t = {} Collision-Coord = {}", initialVector, collisionT, collisionLTCoord);
 
         LOGGER.info("Launching initial transition.");
         this.launchNewTransition(collisionLTCoord);
@@ -128,8 +149,8 @@ public class AfkScreensaver extends Application {
         double collisionT = Geometrics.getMinimalCollisionT(rect, reflectionVector, boundingBox);
         Point2D collisionLTCoord = new Point2D(rect.getX(), rect.getY()).add(reflectionVector.multiply(collisionT));
 
-        LOGGER.debug("Collision Point Calculation: rect[" + rect.getX() + ", " + rect.getY() + "] + " + collisionT +
-                " * " + reflectionVector + " = " + collisionLTCoord);
+        LOGGER.debug("Collision Point Calculation: rect[{}, {}] + {} * {} = {}",
+                rect.getX(), rect.getY(), collisionT, reflectionVector, collisionLTCoord);
 
         this.launchNewTransition(collisionLTCoord);
     }
