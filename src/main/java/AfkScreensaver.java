@@ -48,11 +48,14 @@ public class AfkScreensaver extends Application {
     public void start(Stage stage) {
         LOGGER.info("Starting AFK-Screensaver.");
 
+        // Basic initialization.
+        var group = new Group(rect);
+        var scene = new Scene(group);
+        scene.setFill(Color.BLACK);
         stage.setFullScreen(true);
         stage.setTitle("AFK Screensaver");
-
-        // Configure puck.
-        this.rect.setSmooth(true);
+        stage.setScene(scene);
+        stage.show();
 
         URL afkImageResource = getClass().getResource(AfkScreensaver.AFK_LOGO_NAME);
         if (afkImageResource != null) {
@@ -76,19 +79,7 @@ public class AfkScreensaver extends Application {
             this.rect.setFill(Color.PINK);
         }
 
-        // Placing puck at random position.
-        double randomXPos = Math.random() * (this.boundingBox.getWidth() - this.rect.getWidth());
-        double randomYPos = Math.random() * (this.boundingBox.getHeight() - this.rect.getHeight());
-        this.rect.setX(randomXPos);
-        this.rect.setY(randomYPos);
-
-        var group = new Group(rect);
-        var scene = new Scene(group);
-        scene.setFill(Color.BLACK);
-        stage.setScene(scene);
-        stage.show();
-
-        // Attach handlers.
+        // Attach handlers to stage.
         stage.addEventFilter(KeyEvent.KEY_PRESSED, keyEvent -> {
             switch (keyEvent.getCode()) {
                 case UP -> this.pixelsToTraversePerSecond += 20; // TODO Small information overlay.
@@ -130,6 +121,12 @@ public class AfkScreensaver extends Application {
             }
         });
 
+        // // Configure puck.
+        double randomXPos = Math.random() * (this.boundingBox.getWidth() - this.rect.getWidth());
+        double randomYPos = Math.random() * (this.boundingBox.getHeight() - this.rect.getHeight());
+        this.rect.setX(randomXPos);
+        this.rect.setY(randomYPos);
+        this.rect.setSmooth(true);
 
         Point2D initialVector = Geometrics.getRandomVector();
         this.lastVector = initialVector;
@@ -140,6 +137,10 @@ public class AfkScreensaver extends Application {
 
         LOGGER.info("Launching initial transition.");
         this.launchNewTransition(collisionLTCoord);
+    }
+
+    private void launchScreensaver(){
+        // TODO
     }
 
     private void launchReflectionTransition() {

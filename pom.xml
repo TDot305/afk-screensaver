@@ -80,8 +80,9 @@
                         <configuration>
                             <archive>
                                 <manifest>
+                                    <addClasspath>true</addClasspath>
                                     <mainClass>
-                                        src.main.java.Main
+                                        Main
                                     </mainClass>
                                 </manifest>
                             </archive>
