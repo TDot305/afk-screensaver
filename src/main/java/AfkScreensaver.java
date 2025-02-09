@@ -1,9 +1,11 @@
 import javafx.animation.Interpolator;
 import javafx.animation.TranslateTransition;
 import javafx.application.Application;
+import javafx.fxml.FXMLLoader;
 import javafx.geometry.Dimension2D;
 import javafx.geometry.Point2D;
 import javafx.scene.Group;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.scene.input.KeyEvent;
@@ -19,8 +21,10 @@ import org.apache.logging.log4j.Logger;
 import java.awt.Dimension;
 import java.awt.Toolkit;
 import java.io.File;
+import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.Objects;
 
 
 public class AfkScreensaver extends Application {
@@ -47,7 +51,27 @@ public class AfkScreensaver extends Application {
     @Override
     public void start(Stage stage) {
         LOGGER.info("Starting AFK-Screensaver.");
+        LOGGER.info("Starting config screen.");
 
+        try{
+            URL fxmlResource = Objects.requireNonNull(getClass().getResource("fxml/StartConfig.fxml"));
+            FXMLLoader fxmlLoader =new FXMLLoader(fxmlResource);
+            Parent configRoot = fxmlLoader.load();
+            ConfigScreenController configScreenController = fxmlLoader.getController();
+
+            configScreenController.setMainControllerCallback(screenSaverConfiguration -> this.launchScreensaver(stage));
+
+            Scene configScene = new Scene(configRoot);
+            stage.setTitle("AFK Screensaver Configuration");
+            stage.setScene(configScene);
+            stage.show();
+        } catch (IOException ioe){
+            LOGGER.error("Failed to load the FXML file file for the config screen.", ioe);
+        }
+    }
+
+    private void launchScreensaver(Stage stage){
+        // TODO
         // Basic initialization.
         var group = new Group(rect);
         var scene = new Scene(group);
@@ -137,10 +161,6 @@ public class AfkScreensaver extends Application {
 
         LOGGER.info("Launching initial transition.");
         this.launchNewTransition(collisionLTCoord);
-    }
-
-    private void launchScreensaver(){
-        // TODO
     }
 
     private void launchReflectionTransition() {
