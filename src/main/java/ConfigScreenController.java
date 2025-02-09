@@ -1,6 +1,7 @@
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
+import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.AnchorPane;
@@ -8,7 +9,7 @@ import javafx.stage.FileChooser;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.awt.DisplayMode;
+import java.awt.GraphicsDevice;
 import java.io.File;
 import java.util.Arrays;
 import java.util.Optional;
@@ -18,14 +19,11 @@ public class ConfigScreenController {
         void onConfigurationComplete(ScreenSaverConfiguration configuration);
     }
 
-    public record ScreenSaverConfiguration(File backgroundImage, DisplayMode resolution) {
-    }
-
     private static final Logger LOGGER = LogManager.getLogger(ConfigScreenController.class);
 
     private @FXML AnchorPane topAnchor;
     private @FXML TextField backgroundImageField;
-    private @FXML ListView<DisplayMode> resolutionList;
+    private @FXML ListView<GraphicsDevice> resolutionList;
     private @FXML Button startButton;
 
     private File backgroundImage = null;
@@ -54,14 +52,24 @@ public class ConfigScreenController {
                     () -> this.backgroundImageField.clear());
         });
 
-        // Populate resolution scroll pane.
-        this.resolutionList.setItems(FXCollections.observableList(Arrays.asList(Utils.getDisplayModes())));
+        // Populate screen resolution scroll pane.
+        this.resolutionList.setItems(FXCollections.observableList(Arrays.asList(Utils.getGraphicsDevices())));
         this.resolutionList.getSelectionModel().selectFirst();
+        // Custom display of GraphicsDevices in the ListView
+        this.resolutionList.setCellFactory(graphicsDeviceListView -> new ListCell<>() {
+            @Override
+            protected void updateItem(GraphicsDevice graphicsDevice, boolean empty) {
+                super.updateItem(graphicsDevice, empty);
 
-        this.resolutionList.getSelectionModel().selectedItemProperty().addListener(changeEvent -> {
-            System.out.println("Selection changed: " + this.resolutionList.getSelectionModel().getSelectedItem());
+                if (empty || graphicsDevice == null) {
+                    this.setText(null);
+                } else {
+                    this.setText(graphicsDevice.getIDstring() + " (" + graphicsDevice.getDisplayMode().toString() + ")");
+                }
+            }
         });
 
+        // Equip start button with handler.
         this.startButton.setOnAction(actionEvent -> {
             if (this.callback != null) {
                 this.callback.onConfigurationComplete(
