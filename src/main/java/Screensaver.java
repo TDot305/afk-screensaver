@@ -1,6 +1,5 @@
 import javafx.animation.Interpolator;
 import javafx.animation.TranslateTransition;
-import javafx.geometry.Dimension2D;
 import javafx.geometry.Point2D;
 import javafx.scene.Group;
 import javafx.scene.Scene;
@@ -48,15 +47,46 @@ public class Screensaver {
                 0,
                 graphicsBounds.getWidth(),
                 graphicsBounds.getHeight());
-        var defaultPuckDimension = new Dimension2D(400, 130); // Default dimensions of the AFK puck.
-        var defaultStartingCoordinate = new Point2D(
-                graphicsBounds.getWidth() / 2 - defaultPuckDimension.getWidth() / 2,
-                graphicsBounds.getHeight() / 2 - defaultPuckDimension.getHeight() / 2);
-        this.puck = new Rectangle(
-                defaultStartingCoordinate.getX(),
-                defaultStartingCoordinate.getY(),
-                defaultPuckDimension.getWidth(),
-                defaultPuckDimension.getHeight());
+
+        this.puck = new Rectangle();
+        this.initializePuck(screenSaverConfiguration);
+    }
+
+    private void initializePuck(ScreenSaverConfiguration screenSaverConfiguration) {
+        // Set puck fill.
+        URL afkImageResource = getClass().getResource(Constants.AFK_LOGO_PATH);
+        if (afkImageResource != null) {
+            try {
+                Image afkImage = new Image(afkImageResource.toURI().toString());
+
+                // Set puck dimensions according to screen resolution.
+                double afkLogoAspectRatio = afkImage.getHeight() / afkImage.getWidth();
+                this.puck.setWidth(Math.min(this.boundingBox.getWidth() * 0.95,
+                        afkImage.getWidth()
+                                * Constants.AFK_LOGO_DEFAULT_SIZE_MULTIPLIER
+                                * screenSaverConfiguration.primaryPuckSizeMultiplier()));
+                this.puck.setHeight(afkLogoAspectRatio * this.puck.getWidth());
+
+                this.puck.setFill(new ImagePattern(afkImage));
+                LOGGER.info("Successfully loaded AFK logo for the puck.");
+            } catch (URISyntaxException use) {
+                LOGGER.error("Caught a URISyntaxException when trying to turn {} into a URI.", afkImageResource);
+                this.puck.setFill(Color.PINK);
+            }
+        } else {
+            LOGGER.warn("Could not find resource for AFK logo with name \"" + Constants.AFK_LOGO_PATH + "\"");
+            this.puck.setFill(Color.PINK);
+            this.puck.setWidth(200);
+            this.puck.setHeight(200);
+        }
+
+        // Set random position.
+        double randomXPos = Math.random() * (this.boundingBox.getWidth() - this.puck.getWidth());
+        double randomYPos = Math.random() * (this.boundingBox.getHeight() - this.puck.getHeight());
+        this.puck.setX(randomXPos);
+        this.puck.setY(randomYPos);
+
+        this.puck.setSmooth(true);
     }
 
     public void launchScreensaver() {
@@ -77,28 +107,6 @@ public class Screensaver {
         } else {
             LOGGER.info("No background image selected. Clearing the background.");
             scene.setFill(Color.BLACK);
-        }
-
-        URL afkImageResource = getClass().getResource(Constants.AFK_LOGO_PATH);
-        if (afkImageResource != null) {
-            try {
-                Image afkImage = new Image(afkImageResource.toURI().toString());
-
-                System.out.println("Image dimensions: " + afkImage.getWidth() + " | " + afkImage.getHeight());
-                // Set puck dimensions according to screen resolution.
-                double afkLogoAspectRatio = afkImage.getHeight() / afkImage.getWidth();
-                this.puck.setWidth(0.15 * afkImage.getWidth());
-                this.puck.setHeight(afkLogoAspectRatio * this.puck.getWidth());
-
-                this.puck.setFill(new ImagePattern(afkImage));
-                LOGGER.info("Successfully loaded AFK logo for the puck.");
-            } catch (URISyntaxException use) {
-                LOGGER.error("Caught a URISyntaxException when trying to turn {} into a URI.", afkImageResource);
-                this.puck.setFill(Color.PINK);
-            }
-        } else {
-            LOGGER.warn("Could not find resource for AFK logo with name \"" + Constants.AFK_LOGO_PATH + "\"");
-            this.puck.setFill(Color.PINK);
         }
 
         // Attach handlers to stage.
@@ -139,13 +147,6 @@ public class Screensaver {
                 case F11 -> stage.setFullScreen(!stage.isFullScreen());
             }
         });
-
-        // // Configure puck.
-        double randomXPos = Math.random() * (this.boundingBox.getWidth() - this.puck.getWidth());
-        double randomYPos = Math.random() * (this.boundingBox.getHeight() - this.puck.getHeight());
-        this.puck.setX(randomXPos);
-        this.puck.setY(randomYPos);
-        this.puck.setSmooth(true);
 
         Point2D initialVector = Geometrics.getRandomVector();
         this.lastVector = initialVector;

@@ -18,7 +18,7 @@
    <children>
       <VBox alignment="CENTER" prefHeight="412.0" prefWidth="473.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
          <children>
-            <ImageView fitHeight="150.0" fitWidth="200.0" pickOnBounds="true" preserveRatio="true">
+            <ImageView fx:id="afkImageView" fitHeight="150.0" fitWidth="200.0" pickOnBounds="true" preserveRatio="true">
                <image>
                   <Image url="@../images/afk_logo.png" />
                </image>
@@ -40,7 +40,7 @@
                                           <Insets right="10.0" />
                                        </padding>
                                     </Label>
-                                    <Slider majorTickUnit="1.0" max="5.0" minorTickCount="0" showTickLabels="true" value="1.0" HBox.hgrow="ALWAYS" />
+                                    <Slider fx:id="primaryPuckSizeSlider" majorTickUnit="1.0" max="3.0" min="0.05" minorTickCount="0" showTickLabels="true" value="1.0" HBox.hgrow="ALWAYS" />
                                  </children>
                                  <VBox.margin>
                                     <Insets top="10.0" />
@@ -58,7 +58,7 @@
                                           <Insets right="10.0" />
                                        </padding>
                                     </Label>
-                                    <Slider majorTickUnit="1.0" max="5.0" showTickLabels="true" HBox.hgrow="ALWAYS" />
+                                    <Slider majorTickUnit="1.0" max="3.0" min="0.05" showTickLabels="true" HBox.hgrow="ALWAYS" />
                                  </children>
                                  <opaqueInsets>
                                     <Insets />

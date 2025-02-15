@@ -3,7 +3,9 @@ import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
+import javafx.scene.control.Slider;
 import javafx.scene.control.TextField;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.FileChooser;
 import org.apache.logging.log4j.LogManager;
@@ -24,7 +26,9 @@ public class ConfigScreenController {
     private static final Logger LOGGER = LogManager.getLogger(ConfigScreenController.class);
 
     private @FXML AnchorPane topAnchor;
+    private @FXML ImageView afkImageView;
     private @FXML TextField backgroundImageField;
+    private @FXML Slider primaryPuckSizeSlider;
     private @FXML ListView<GraphicsDevice> resolutionList;
     private @FXML Button startButton;
 
@@ -52,6 +56,12 @@ public class ConfigScreenController {
             Optional.ofNullable(this.backgroundImage).ifPresentOrElse(
                     file -> this.backgroundImageField.setText(file.getName()),
                     () -> this.backgroundImageField.clear());
+        });
+
+        // TODO Fix.
+        this.primaryPuckSizeSlider.valueProperty().addListener((observable, oldValue, newValue) -> {
+            this.afkImageView.setScaleX(newValue.doubleValue());
+            this.afkImageView.setScaleY(newValue.doubleValue());
         });
 
         // Populate screen resolution scroll pane.
@@ -90,7 +100,8 @@ public class ConfigScreenController {
                 this.callback.onConfigurationComplete(
                         new ScreenSaverConfiguration(
                                 this.backgroundImage,
-                                this.resolutionList.getSelectionModel().getSelectedItem()
+                                this.resolutionList.getSelectionModel().getSelectedItem(),
+                                this.primaryPuckSizeSlider.getValue()
                         )
                 );
             } else {
