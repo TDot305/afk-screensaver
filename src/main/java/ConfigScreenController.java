@@ -13,6 +13,8 @@ import java.awt.GraphicsDevice;
 import java.io.File;
 import java.util.Arrays;
 import java.util.Optional;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 public class ConfigScreenController {
     public interface ConfigurationScreenCallback {
@@ -41,8 +43,8 @@ public class ConfigScreenController {
             fileChooser.setTitle("Select Background for AFK Screensaver");
             fileChooser.setInitialDirectory(new File(System.getProperty("user.home")));
             fileChooser.getExtensionFilters().addAll(
-                    new FileChooser.ExtensionFilter("JPG", "*.jpg"),
-                    new FileChooser.ExtensionFilter("PNG", "*.png")
+                    new FileChooser.ExtensionFilter("JPG", "*.jpg", "*.JPG"),
+                    new FileChooser.ExtensionFilter("PNG", "*.png", "*.PNG")
             );
 
             this.backgroundImage = fileChooser.showOpenDialog(topAnchor.getScene().getWindow());
@@ -64,7 +66,20 @@ public class ConfigScreenController {
                 if (empty || graphicsDevice == null) {
                     this.setText(null);
                 } else {
-                    this.setText(graphicsDevice.getIDstring() + " (" + graphicsDevice.getDisplayMode().toString() + ")");
+                    String graphicsDeviceFormattedId = graphicsDevice.getIDstring().trim();
+                    // Remove leading backslash
+                    if (graphicsDeviceFormattedId.startsWith("\\")) {
+                        graphicsDeviceFormattedId = graphicsDeviceFormattedId.substring(1);
+                    }
+
+                    // Separate actual id and associated number (e.g., Display1 --> Display 1).
+                    Pattern pattern = Pattern.compile("(\\D+)(\\d+)");
+                    Matcher matcher = pattern.matcher(graphicsDeviceFormattedId);
+                    if (matcher.find()) {
+                        graphicsDeviceFormattedId = matcher.group(1) + " " + matcher.group(2);
+                    }
+
+                    this.setText(graphicsDeviceFormattedId + " (" + graphicsDevice.getDisplayMode().toString() + ")");
                 }
             }
         });
