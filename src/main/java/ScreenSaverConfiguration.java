@@ -3,5 +3,8 @@ import java.io.File;
 
 public record ScreenSaverConfiguration(File backgroundImage,
                                        GraphicsDevice graphicsDevice,
-                                       double primaryPuckSizeMultiplier) {
+                                       double primaryPuckSizeMultiplier,
+                                       boolean secondaryPuck,
+                                       File secondaryPuckImage,
+                                       double secondaryPuckSizeMultiplier) {
 }

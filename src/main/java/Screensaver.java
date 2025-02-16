@@ -13,25 +13,34 @@ import javafx.stage.Stage;
 import javafx.util.Duration;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
+import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
 
 public class Screensaver {
-    private static final Logger LOGGER = LogManager.getLogger(Screensaver.class);
+    private @NotNull
+    static final Logger LOGGER = LogManager.getLogger(Screensaver.class);
 
-    private final Stage stage;
-    private final ScreenSaverConfiguration screenSaverConfiguration;
-    private final Rectangle boundingBox;
-    private final Rectangle puck;
+    private @NotNull
+    final Stage stage;
+    private @NotNull
+    final ScreenSaverConfiguration screenSaverConfiguration;
+    private @NotNull
+    final Rectangle boundingBox;
+    private @NotNull
+    final Rectangle primaryPuck;
+    private @Nullable Rectangle secondaryPuck;
 
-    private int pixelsToTraversePerSecond = 300;
-    private Point2D lastVector;
     private boolean debugMode = false;
+    private int pixelsToTraversePerSecond = Constants.DEFAULT_PIXELS_TO_TRAVERSE_PER_SECOND;
+    private @Nullable Point2D lastVector;
 
 
-    public Screensaver(Stage stage, ScreenSaverConfiguration screenSaverConfiguration) {
+    public Screensaver(@NotNull Stage stage, @NotNull ScreenSaverConfiguration screenSaverConfiguration) {
         this.stage = stage;
         this.screenSaverConfiguration = screenSaverConfiguration;
         java.awt.Rectangle graphicsBounds = this.screenSaverConfiguration.graphicsDevice().getDefaultConfiguration().getBounds();
@@ -41,57 +50,71 @@ public class Screensaver {
         stage.setY(graphicsBounds.getY());
         stage.setTitle("AFK Screensaver");
 
-        // Initialize bounding box and puck.
+        // Initialize bounding box and puck(s).
         this.boundingBox = new Rectangle(
                 0,
                 0,
                 graphicsBounds.getWidth(),
                 graphicsBounds.getHeight());
-
-        this.puck = new Rectangle();
-        this.initializePuck(screenSaverConfiguration);
+        this.primaryPuck = this.createPuck(
+                getClass().getResource(Constants.AFK_LOGO_PATH),
+                this.screenSaverConfiguration.primaryPuckSizeMultiplier());
+        if (screenSaverConfiguration.secondaryPuck()) {
+            try {
+                this.secondaryPuck = this.createPuck(
+                        this.screenSaverConfiguration.secondaryPuckImage().toURI().toURL(),
+                        this.screenSaverConfiguration.secondaryPuckSizeMultiplier());
+            } catch (MalformedURLException malformedURLException) {
+                this.secondaryPuck = this.createPuck(
+                        null,
+                        this.screenSaverConfiguration.secondaryPuckSizeMultiplier());
+            }
+        }
     }
 
-    private void initializePuck(ScreenSaverConfiguration screenSaverConfiguration) {
+    private @NotNull Rectangle createPuck(@Nullable URL imageUrl, double sizeMultiplier) {
+        var puck = new Rectangle();
+
         // Set puck fill.
-        URL afkImageResource = getClass().getResource(Constants.AFK_LOGO_PATH);
-        if (afkImageResource != null) {
+        if (imageUrl != null) {
             try {
-                Image afkImage = new Image(afkImageResource.toURI().toString());
+                var puckImage = new Image(imageUrl.toURI().toString());
 
                 // Set puck dimensions according to screen resolution.
-                double afkLogoAspectRatio = afkImage.getHeight() / afkImage.getWidth();
-                this.puck.setWidth(Math.min(this.boundingBox.getWidth() * 0.95,
-                        afkImage.getWidth()
+                double imageAspectRatio = puckImage.getHeight() / puckImage.getWidth();
+                puck.setWidth(Math.min(this.boundingBox.getWidth() * 0.95,
+                        puckImage.getWidth()
                                 * Constants.AFK_LOGO_DEFAULT_SIZE_MULTIPLIER
-                                * screenSaverConfiguration.primaryPuckSizeMultiplier()));
-                this.puck.setHeight(afkLogoAspectRatio * this.puck.getWidth());
+                                * sizeMultiplier));
+                puck.setHeight(imageAspectRatio * puck.getWidth());
 
-                this.puck.setFill(new ImagePattern(afkImage));
-                LOGGER.info("Successfully loaded AFK logo for the puck.");
+                puck.setFill(new ImagePattern(puckImage));
+                LOGGER.info("Successfully loaded image \"{}\" for the puck.", imageUrl);
             } catch (URISyntaxException use) {
-                LOGGER.error("Caught a URISyntaxException when trying to turn {} into a URI.", afkImageResource);
-                this.puck.setFill(Color.PINK);
+                LOGGER.error("Caught a URISyntaxException when trying to turn {} into a URI.", imageUrl);
+                puck.setFill(Color.PINK);
             }
         } else {
-            LOGGER.warn("Could not find resource for AFK logo with name \"" + Constants.AFK_LOGO_PATH + "\"");
-            this.puck.setFill(Color.PINK);
-            this.puck.setWidth(200);
-            this.puck.setHeight(200);
+            LOGGER.warn("Could not find resource for image specified for the puck as the associated URL was null.");
+            puck.setFill(Color.PINK);
+            puck.setWidth(200);
+            puck.setHeight(200);
         }
 
         // Set random position.
-        double randomXPos = Math.random() * (this.boundingBox.getWidth() - this.puck.getWidth());
-        double randomYPos = Math.random() * (this.boundingBox.getHeight() - this.puck.getHeight());
-        this.puck.setX(randomXPos);
-        this.puck.setY(randomYPos);
+        double randomXPos = Math.random() * (this.boundingBox.getWidth() - puck.getWidth());
+        double randomYPos = Math.random() * (this.boundingBox.getHeight() - puck.getHeight());
+        puck.setX(randomXPos);
+        puck.setY(randomYPos);
 
-        this.puck.setSmooth(true);
+        puck.setSmooth(true);
+
+        return puck;
     }
 
     public void launchScreensaver() {
         // Basic initialization.
-        var group = new Group(puck);
+        var group = new Group(this.primaryPuck);
         var scene = new Scene(group);
         scene.setFill(Color.BLACK);
 
@@ -136,10 +159,10 @@ public class Screensaver {
                 case F10 -> {
                     if (!this.debugMode) {
                         // Turn on debug mode.
-                        this.puck.setStyle("-fx-stroke: green; -fx-stroke-width: 3;");
+                        this.primaryPuck.setStyle("-fx-stroke: green; -fx-stroke-width: 3;");
                     } else {
                         // Turn off debug mode.
-                        this.puck.setStyle("");
+                        this.primaryPuck.setStyle("");
                     }
 
                     this.debugMode = !this.debugMode;
@@ -151,8 +174,8 @@ public class Screensaver {
         Point2D initialVector = Geometrics.getRandomVector();
         this.lastVector = initialVector;
 
-        double collisionT = Geometrics.getMinimalCollisionT(puck, initialVector, boundingBox);
-        Point2D collisionLTCoord = new Point2D(puck.getX(), puck.getY()).add(initialVector.multiply(collisionT));
+        double collisionT = Geometrics.getMinimalCollisionT(primaryPuck, initialVector, boundingBox);
+        Point2D collisionLTCoord = new Point2D(primaryPuck.getX(), primaryPuck.getY()).add(initialVector.multiply(collisionT));
         LOGGER.debug("Initial move: Vector = {} Collision-t = {} Collision-Coord = {}", initialVector, collisionT, collisionLTCoord);
 
         LOGGER.info("Launching initial transition.");
@@ -161,30 +184,30 @@ public class Screensaver {
 
     private void launchReflectionTransition() {
         // Determine side that has been hit.
-        Point2D reflectionVector = Geometrics.getDeflectionVector(this.puck, this.lastVector, this.boundingBox);
+        Point2D reflectionVector = Geometrics.getDeflectionVector(this.primaryPuck, this.lastVector, this.boundingBox);
         this.lastVector = reflectionVector;
-        double collisionT = Geometrics.getMinimalCollisionT(puck, reflectionVector, boundingBox);
-        Point2D collisionLTCoord = new Point2D(puck.getX(), puck.getY()).add(reflectionVector.multiply(collisionT));
+        double collisionT = Geometrics.getMinimalCollisionT(primaryPuck, reflectionVector, boundingBox);
+        Point2D collisionLTCoord = new Point2D(primaryPuck.getX(), primaryPuck.getY()).add(reflectionVector.multiply(collisionT));
 
         LOGGER.debug("Collision Point Calculation: rect[{}, {}] + {} * {} = {}",
-                puck.getX(), puck.getY(), collisionT, reflectionVector, collisionLTCoord);
+                primaryPuck.getX(), primaryPuck.getY(), collisionT, reflectionVector, collisionLTCoord);
 
         this.launchNewTransition(collisionLTCoord);
     }
 
     private void launchNewTransition(Point2D collisionLTCoord) {
         var transition = new TranslateTransition(Duration.seconds(
-                collisionLTCoord.distance(puck.getX(), puck.getY()) / pixelsToTraversePerSecond), puck);
+                collisionLTCoord.distance(primaryPuck.getX(), primaryPuck.getY()) / pixelsToTraversePerSecond), primaryPuck);
 
-        transition.setToX(collisionLTCoord.getX() - puck.getX());
-        transition.setToY(collisionLTCoord.getY() - puck.getY());
+        transition.setToX(collisionLTCoord.getX() - primaryPuck.getX());
+        transition.setToY(collisionLTCoord.getY() - primaryPuck.getY());
         transition.setInterpolator(Interpolator.LINEAR);
         transition.setOnFinished(e -> {
             // Move to new position.
-            this.puck.setX(this.puck.getX() + transition.getToX());
-            this.puck.setY(this.puck.getY() + transition.getToY());
-            this.puck.setTranslateX(0);
-            this.puck.setTranslateY(0);
+            this.primaryPuck.setX(this.primaryPuck.getX() + transition.getToX());
+            this.primaryPuck.setY(this.primaryPuck.getY() + transition.getToY());
+            this.primaryPuck.setTranslateX(0);
+            this.primaryPuck.setTranslateY(0);
 
             launchReflectionTransition();
         });

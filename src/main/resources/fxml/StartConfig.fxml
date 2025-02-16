@@ -5,25 +5,29 @@
 <?import javafx.scene.control.CheckBox?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.Separator?>
 <?import javafx.scene.control.Slider?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.control.TitledPane?>
 <?import javafx.scene.image.Image?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.layout.VBox?>
 
-<AnchorPane fx:id="topAnchor" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefHeight="600.0" prefWidth="500.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ConfigScreenController">
+<AnchorPane fx:id="topAnchor" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ConfigScreenController">
    <children>
       <VBox alignment="CENTER" prefHeight="412.0" prefWidth="473.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
          <children>
-            <ImageView fx:id="afkImageView" fitHeight="150.0" fitWidth="200.0" pickOnBounds="true" preserveRatio="true">
+            <ImageView fx:id="afkImageView" fitHeight="195.0" fitWidth="600.0" pickOnBounds="true" preserveRatio="true" VBox.vgrow="ALWAYS">
                <image>
                   <Image url="@../images/afk_logo.png" />
                </image>
                <VBox.margin>
-                  <Insets bottom="10.0" top="10.0" />
+                  <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
                </VBox.margin>
             </ImageView>
             <TitledPane animated="false" collapsible="false" text="General Settings" VBox.vgrow="ALWAYS">
@@ -33,49 +37,83 @@
                         <VBox layoutX="20.0" layoutY="20.0" prefHeight="104.0" prefWidth="451.0" AnchorPane.bottomAnchor="43.0" AnchorPane.leftAnchor="10.0" AnchorPane.rightAnchor="10.0" AnchorPane.topAnchor="10.0">
                            <children>
                               <TextField fx:id="backgroundImageField" editable="false" promptText="Select background image..." />
+                              <Separator prefWidth="200.0">
+                                 <VBox.margin>
+                                    <Insets bottom="10.0" top="10.0" />
+                                 </VBox.margin>
+                              </Separator>
                               <HBox alignment="CENTER">
                                  <children>
                                     <Label text="Primary Puck Size">
-                                       <padding>
-                                          <Insets right="10.0" />
-                                       </padding>
+                                       <HBox.margin>
+                                          <Insets right="20.0" />
+                                       </HBox.margin>
                                     </Label>
                                     <Slider fx:id="primaryPuckSizeSlider" majorTickUnit="1.0" max="3.0" min="0.05" minorTickCount="0" showTickLabels="true" value="1.0" HBox.hgrow="ALWAYS" />
                                  </children>
                                  <VBox.margin>
-                                    <Insets top="10.0" />
-                                 </VBox.margin>
-                              </HBox>
-                              <HBox>
-                                 <children>
-                                    <CheckBox mnemonicParsing="false" text="Enable Secondary Puck">
-                                       <HBox.margin>
-                                          <Insets right="20.0" />
-                                       </HBox.margin>
-                                    </CheckBox>
-                                    <Label text="Secondary Puck Size">
-                                       <padding>
-                                          <Insets right="10.0" />
-                                       </padding>
-                                    </Label>
-                                    <Slider majorTickUnit="1.0" max="3.0" min="0.05" showTickLabels="true" HBox.hgrow="ALWAYS" />
-                                 </children>
-                                 <opaqueInsets>
                                     <Insets />
-                                 </opaqueInsets>
-                                 <VBox.margin>
-                                    <Insets top="10.0" />
                                  </VBox.margin>
                               </HBox>
+                              <Separator prefWidth="200.0">
+                                 <VBox.margin>
+                                    <Insets bottom="10.0" top="10.0" />
+                                 </VBox.margin>
+                              </Separator>
+                              <GridPane minHeight="100.0">
+                                <columnConstraints>
+                                  <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="300.0" />
+                                  <ColumnConstraints halignment="CENTER" hgrow="SOMETIMES" minWidth="10.0" />
+                                </columnConstraints>
+                                <rowConstraints>
+                                  <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                                </rowConstraints>
+                                 <children>
+                                    <VBox alignment="CENTER">
+                                       <children>
+                                          <HBox alignment="CENTER" prefHeight="0.0" prefWidth="169.0">
+                                             <children>
+                                                <CheckBox fx:id="secondaryPuckCheckBox" mnemonicParsing="false" text="Enable Secondary Puck">
+                                                   <HBox.margin>
+                                                      <Insets right="20.0" />
+                                                   </HBox.margin>
+                                                </CheckBox>
+                                                <TextField fx:id="secondaryPuckImageField" disable="true" editable="false" promptText="Select background image..." HBox.hgrow="ALWAYS" />
+                                             </children>
+                                             <opaqueInsets>
+                                                <Insets />
+                                             </opaqueInsets>
+                                             <padding>
+                                                <Insets bottom="10.0" />
+                                             </padding>
+                                          </HBox>
+                                          <HBox fx:id="secondaryPuckSizeHBox" alignment="CENTER" disable="true" prefHeight="100.0" prefWidth="200.0">
+                                             <children>
+                                                <Label text="Secondary Puck Size">
+                                                   <padding>
+                                                      <Insets right="10.0" />
+                                                   </padding>
+                                                   <HBox.margin>
+                                                      <Insets right="20.0" />
+                                                   </HBox.margin>
+                                                </Label>
+                                                <Slider fx:id="secondaryPuckSizeSlider" majorTickUnit="1.0" max="3.0" min="0.05" showTickLabels="true" value="1.0" HBox.hgrow="ALWAYS" />
+                                             </children>
+                                          </HBox>
+                                       </children>
+                                    </VBox>
+                                    <ImageView fx:id="secondaryPuckImageView" fitHeight="125.0" fitWidth="100.0" pickOnBounds="true" preserveRatio="true" GridPane.columnIndex="1" />
+                                 </children>
+                              </GridPane>
                            </children>
                         </VBox>
                      </children>
                   </AnchorPane>
               </content>
             </TitledPane>
-            <TitledPane animated="false" collapsible="false" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" text="Screen Selection" VBox.vgrow="ALWAYS">
+            <TitledPane animated="false" collapsible="false" text="Screen Selection" VBox.vgrow="ALWAYS">
               <content>
-                <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
+                <AnchorPane minHeight="100.0" minWidth="0.0">
                      <children>
                         <ListView fx:id="resolutionList" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" />
                      </children>
