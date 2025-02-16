@@ -37,7 +37,8 @@ public class Screensaver {
 
     private boolean debugMode = false;
     private int pixelsToTraversePerSecond = Constants.DEFAULT_PIXELS_TO_TRAVERSE_PER_SECOND;
-    private @Nullable Point2D lastVector;
+    private @Nullable Point2D lastPrimaryPuckVector;
+    private @Nullable Point2D lastSecondaryPuckVector;
 
 
     public Screensaver(@NotNull Stage stage, @NotNull ScreenSaverConfiguration screenSaverConfiguration) {
@@ -115,8 +116,13 @@ public class Screensaver {
     public void launchScreensaver() {
         // Basic initialization.
         var group = new Group(this.primaryPuck);
+
+        if (this.screenSaverConfiguration.secondaryPuck()) {
+            group.getChildren().add(this.secondaryPuck);
+        }
+
         var scene = new Scene(group);
-        scene.setFill(Color.BLACK);
+        scene.setFill(Constants.DEFAULT_SCREENSAVER_BACKGROUND_COLOR);
 
         // Configure stage.
         stage.setScene(scene);
@@ -132,7 +138,15 @@ public class Screensaver {
             scene.setFill(Color.BLACK);
         }
 
-        // Attach handlers to stage.
+        this.attachHandlers(scene);
+
+        // Actual start procedure.
+        var primaryThread = new Thread(this::launchPuck);
+        primaryThread.start();
+        // TODO Start second thread for secondary puck if necessary.
+    }
+
+    private void attachHandlers(@NotNull Scene scene) {
         stage.addEventFilter(KeyEvent.KEY_PRESSED, keyEvent -> {
             switch (keyEvent.getCode()) {
                 case UP -> this.pixelsToTraversePerSecond += 20; // TODO Small information overlay.
@@ -170,28 +184,18 @@ public class Screensaver {
                 case F11 -> stage.setFullScreen(!stage.isFullScreen());
             }
         });
+    }
 
+    // TODO Make more general such that it can be used to start either the primary or the secondary puck.
+    private void launchPuck() {
         Point2D initialVector = Geometrics.getRandomVector();
-        this.lastVector = initialVector;
+        this.lastPrimaryPuckVector = initialVector;
 
         double collisionT = Geometrics.getMinimalCollisionT(primaryPuck, initialVector, boundingBox);
         Point2D collisionLTCoord = new Point2D(primaryPuck.getX(), primaryPuck.getY()).add(initialVector.multiply(collisionT));
         LOGGER.debug("Initial move: Vector = {} Collision-t = {} Collision-Coord = {}", initialVector, collisionT, collisionLTCoord);
 
         LOGGER.info("Launching initial transition.");
-        this.launchNewTransition(collisionLTCoord);
-    }
-
-    private void launchReflectionTransition() {
-        // Determine side that has been hit.
-        Point2D reflectionVector = Geometrics.getDeflectionVector(this.primaryPuck, this.lastVector, this.boundingBox);
-        this.lastVector = reflectionVector;
-        double collisionT = Geometrics.getMinimalCollisionT(primaryPuck, reflectionVector, boundingBox);
-        Point2D collisionLTCoord = new Point2D(primaryPuck.getX(), primaryPuck.getY()).add(reflectionVector.multiply(collisionT));
-
-        LOGGER.debug("Collision Point Calculation: rect[{}, {}] + {} * {} = {}",
-                primaryPuck.getX(), primaryPuck.getY(), collisionT, reflectionVector, collisionLTCoord);
-
         this.launchNewTransition(collisionLTCoord);
     }
 
@@ -213,5 +217,18 @@ public class Screensaver {
         });
 
         transition.play();
+    }
+
+    private void launchReflectionTransition() {
+        // Determine side that has been hit.
+        Point2D reflectionVector = Geometrics.getDeflectionVector(this.primaryPuck, this.lastPrimaryPuckVector, this.boundingBox);
+        this.lastPrimaryPuckVector = reflectionVector;
+        double collisionT = Geometrics.getMinimalCollisionT(primaryPuck, reflectionVector, boundingBox);
+        Point2D collisionLTCoord = new Point2D(primaryPuck.getX(), primaryPuck.getY()).add(reflectionVector.multiply(collisionT));
+
+        LOGGER.debug("Collision Point Calculation: rect[{}, {}] + {} * {} = {}",
+                primaryPuck.getX(), primaryPuck.getY(), collisionT, reflectionVector, collisionLTCoord);
+
+        this.launchNewTransition(collisionLTCoord);
     }
 }
