@@ -18,8 +18,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.net.MalformedURLException;
-import java.net.URISyntaxException;
-import java.net.URL;
 
 public class Screensaver {
     private @NotNull
@@ -32,13 +30,10 @@ public class Screensaver {
     private @NotNull
     final Rectangle boundingBox;
     private @NotNull
-    final Rectangle primaryPuck;
-    private @Nullable Rectangle secondaryPuck;
+    final Puck primaryPuck;
+    private @Nullable Puck secondaryPuck;
 
-    private boolean debugMode = false;
     private int pixelsToTraversePerSecond = Constants.DEFAULT_PIXELS_TO_TRAVERSE_PER_SECOND;
-    private @Nullable Point2D lastPrimaryPuckVector;
-    private @Nullable Point2D lastSecondaryPuckVector;
 
 
     public Screensaver(@NotNull Stage stage, @NotNull ScreenSaverConfiguration screenSaverConfiguration) {
@@ -57,68 +52,28 @@ public class Screensaver {
                 0,
                 graphicsBounds.getWidth(),
                 graphicsBounds.getHeight());
-        this.primaryPuck = this.createPuck(
+        this.primaryPuck = new Puck(this.boundingBox,
                 getClass().getResource(Constants.AFK_LOGO_PATH),
                 this.screenSaverConfiguration.primaryPuckSizeMultiplier());
         if (screenSaverConfiguration.secondaryPuck()) {
             try {
-                this.secondaryPuck = this.createPuck(
+                this.secondaryPuck = new Puck(this.boundingBox,
                         this.screenSaverConfiguration.secondaryPuckImage().toURI().toURL(),
                         this.screenSaverConfiguration.secondaryPuckSizeMultiplier());
             } catch (MalformedURLException malformedURLException) {
-                this.secondaryPuck = this.createPuck(
+                this.secondaryPuck = new Puck(this.boundingBox,
                         null,
-                        this.screenSaverConfiguration.secondaryPuckSizeMultiplier());
+                        null);
             }
         }
-    }
-
-    private @NotNull Rectangle createPuck(@Nullable URL imageUrl, double sizeMultiplier) {
-        var puck = new Rectangle();
-
-        // Set puck fill.
-        if (imageUrl != null) {
-            try {
-                var puckImage = new Image(imageUrl.toURI().toString());
-
-                // Set puck dimensions according to screen resolution.
-                double imageAspectRatio = puckImage.getHeight() / puckImage.getWidth();
-                puck.setWidth(Math.min(this.boundingBox.getWidth() * 0.95,
-                        puckImage.getWidth()
-                                * Constants.AFK_LOGO_DEFAULT_SIZE_MULTIPLIER
-                                * sizeMultiplier));
-                puck.setHeight(imageAspectRatio * puck.getWidth());
-
-                puck.setFill(new ImagePattern(puckImage));
-                LOGGER.info("Successfully loaded image \"{}\" for the puck.", imageUrl);
-            } catch (URISyntaxException use) {
-                LOGGER.error("Caught a URISyntaxException when trying to turn {} into a URI.", imageUrl);
-                puck.setFill(Color.PINK);
-            }
-        } else {
-            LOGGER.warn("Could not find resource for image specified for the puck as the associated URL was null.");
-            puck.setFill(Color.PINK);
-            puck.setWidth(200);
-            puck.setHeight(200);
-        }
-
-        // Set random position.
-        double randomXPos = Math.random() * (this.boundingBox.getWidth() - puck.getWidth());
-        double randomYPos = Math.random() * (this.boundingBox.getHeight() - puck.getHeight());
-        puck.setX(randomXPos);
-        puck.setY(randomYPos);
-
-        puck.setSmooth(true);
-
-        return puck;
     }
 
     public void launchScreensaver() {
         // Basic initialization.
-        var group = new Group(this.primaryPuck);
+        var group = new Group(this.primaryPuck.getEncompassingRect());
 
-        if (this.screenSaverConfiguration.secondaryPuck()) {
-            group.getChildren().add(this.secondaryPuck);
+        if (this.secondaryPuck != null) {
+            group.getChildren().add(this.secondaryPuck.getEncompassingRect());
         }
 
         var scene = new Scene(group);
@@ -133,17 +88,19 @@ public class Screensaver {
         if (screenSaverConfiguration.backgroundImage() != null) {
             LOGGER.info("Selected background image file: {}", screenSaverConfiguration.backgroundImage().getAbsolutePath());
             scene.setFill(new ImagePattern(new Image(screenSaverConfiguration.backgroundImage().toURI().toString())));
-        } else {
-            LOGGER.info("No background image selected. Clearing the background.");
-            scene.setFill(Color.BLACK);
         }
 
         this.attachHandlers(scene);
 
         // Actual start procedure.
-        var primaryThread = new Thread(this::launchPuck);
+        var primaryThread = new Thread(() -> Screensaver.this.launchPuck(Screensaver.this.primaryPuck));
         primaryThread.start();
+
         // TODO Start second thread for secondary puck if necessary.
+        if(this.secondaryPuck != null) {
+            var secondaryThread = new Thread(() -> Screensaver.this.launchPuck(Screensaver.this.secondaryPuck));
+            secondaryThread.start();
+        }
     }
 
     private void attachHandlers(@NotNull Scene scene) {
@@ -170,65 +127,68 @@ public class Screensaver {
                         scene.setFill(Color.BLACK);
                     }
                 }
-                case F10 -> {
-                    if (!this.debugMode) {
-                        // Turn on debug mode.
-                        this.primaryPuck.setStyle("-fx-stroke: green; -fx-stroke-width: 3;");
-                    } else {
-                        // Turn off debug mode.
-                        this.primaryPuck.setStyle("");
-                    }
-
-                    this.debugMode = !this.debugMode;
-                }
+                case F10 -> this.primaryPuck.toggleDebugMode();
                 case F11 -> stage.setFullScreen(!stage.isFullScreen());
             }
         });
     }
 
     // TODO Make more general such that it can be used to start either the primary or the secondary puck.
-    private void launchPuck() {
+    private void launchPuck(@NotNull Puck puck) {
         Point2D initialVector = Geometrics.getRandomVector();
-        this.lastPrimaryPuckVector = initialVector;
+        puck.setLastVector(initialVector);
 
-        double collisionT = Geometrics.getMinimalCollisionT(primaryPuck, initialVector, boundingBox);
-        Point2D collisionLTCoord = new Point2D(primaryPuck.getX(), primaryPuck.getY()).add(initialVector.multiply(collisionT));
-        LOGGER.debug("Initial move: Vector = {} Collision-t = {} Collision-Coord = {}", initialVector, collisionT, collisionLTCoord);
+        double collisionT = Geometrics.getMinimalCollisionT(puck.getEncompassingRect(), initialVector, this.boundingBox);
+        var collisionLTCoord = new Point2D(
+                puck.getEncompassingRect().getX(),
+                puck.getEncompassingRect().getY()).add(initialVector.multiply(collisionT));
+        LOGGER.debug("Initial move: Vector = {} Collision-t = {} Collision-Coord = {}",
+                initialVector, collisionT, collisionLTCoord);
 
         LOGGER.info("Launching initial transition.");
-        this.launchNewTransition(collisionLTCoord);
+        this.launchNewTransition(puck, collisionLTCoord);
     }
 
-    private void launchNewTransition(Point2D collisionLTCoord) {
+    private void launchNewTransition(@NotNull Puck puck, @NotNull Point2D collisionLTCoord) {
         var transition = new TranslateTransition(Duration.seconds(
-                collisionLTCoord.distance(primaryPuck.getX(), primaryPuck.getY()) / pixelsToTraversePerSecond), primaryPuck);
+                collisionLTCoord.distance(puck.getEncompassingRect().getX(), puck.getEncompassingRect().getY()) / pixelsToTraversePerSecond), puck.getEncompassingRect());
 
-        transition.setToX(collisionLTCoord.getX() - primaryPuck.getX());
-        transition.setToY(collisionLTCoord.getY() - primaryPuck.getY());
+        transition.setToX(collisionLTCoord.getX() - puck.getEncompassingRect().getX());
+        transition.setToY(collisionLTCoord.getY() - puck.getEncompassingRect().getY());
         transition.setInterpolator(Interpolator.LINEAR);
         transition.setOnFinished(e -> {
             // Move to new position.
-            this.primaryPuck.setX(this.primaryPuck.getX() + transition.getToX());
-            this.primaryPuck.setY(this.primaryPuck.getY() + transition.getToY());
-            this.primaryPuck.setTranslateX(0);
-            this.primaryPuck.setTranslateY(0);
+            puck.getEncompassingRect().setX(puck.getEncompassingRect().getX() + transition.getToX());
+            puck.getEncompassingRect().setY(puck.getEncompassingRect().getY() + transition.getToY());
+            puck.getEncompassingRect().setTranslateX(0);
+            puck.getEncompassingRect().setTranslateY(0);
 
-            launchReflectionTransition();
+            launchReflectionTransition(puck);
         });
 
         transition.play();
     }
 
-    private void launchReflectionTransition() {
+    private void launchReflectionTransition(@NotNull Puck puck) {
         // Determine side that has been hit.
-        Point2D reflectionVector = Geometrics.getDeflectionVector(this.primaryPuck, this.lastPrimaryPuckVector, this.boundingBox);
-        this.lastPrimaryPuckVector = reflectionVector;
-        double collisionT = Geometrics.getMinimalCollisionT(primaryPuck, reflectionVector, boundingBox);
-        Point2D collisionLTCoord = new Point2D(primaryPuck.getX(), primaryPuck.getY()).add(reflectionVector.multiply(collisionT));
+        Point2D reflectionVector = Geometrics.getDeflectionVector(
+                puck.getEncompassingRect(),
+                puck.getLastVector(),
+                this.boundingBox);
+        puck.setLastVector(reflectionVector);
+
+        double collisionT = Geometrics.getMinimalCollisionT(
+                puck.getEncompassingRect(),
+                reflectionVector,
+                this.boundingBox);
+        Point2D collisionLTCoord = new Point2D(
+                puck.getEncompassingRect().getX(),
+                puck.getEncompassingRect().getY()).add(reflectionVector.multiply(collisionT));
 
         LOGGER.debug("Collision Point Calculation: rect[{}, {}] + {} * {} = {}",
-                primaryPuck.getX(), primaryPuck.getY(), collisionT, reflectionVector, collisionLTCoord);
+                puck.getEncompassingRect().getX(),
+                puck.getEncompassingRect().getY(), collisionT, reflectionVector, collisionLTCoord);
 
-        this.launchNewTransition(collisionLTCoord);
+        this.launchNewTransition(puck, collisionLTCoord);
     }
 }
