@@ -1,5 +1,6 @@
 import javafx.animation.Interpolator;
 import javafx.animation.TranslateTransition;
+import javafx.application.Platform;
 import javafx.geometry.Point2D;
 import javafx.scene.Group;
 import javafx.scene.Scene;
@@ -163,7 +164,7 @@ public class Screensaver {
             puck.getEncompassingRect().setTranslateX(0);
             puck.getEncompassingRect().setTranslateY(0);
 
-            launchReflectionTransition(puck);
+            Platform.runLater(() -> this.launchReflectionTransition(puck));
         });
 
         transition.play();
