@@ -18,6 +18,7 @@ public class Puck {
     private @Nullable Point2D lastVector;
     private boolean debugMode = false;
 
+    // TODO Use svg image instead of png.
     public Puck(@NotNull Rectangle boundingBox, @Nullable URL imageUrl, @Nullable Double sizeMultiplier) {
         this.encompassingRect = new Rectangle();
 

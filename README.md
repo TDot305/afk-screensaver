@@ -5,6 +5,7 @@ main puck.
 
 
 ![Exemplary screenshot of the screensaver](doc/Screenshot_Screensaver.png)
+<sup>[Image credit](https://wallpapersafari.com/w/cOmf2V)</sup>
 
 ## Controls
 
